@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>식사명령</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="식사명령">
+<meta name="theme-color" content="#E8220A">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
 <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=b0bd309351543ad63cb6f06aabf8e876&libraries=services"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
@@ -460,10 +473,17 @@
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
 
+  // 모바일 첫 터치시 AudioContext 활성화
   function getAudioCtx() {
     if (!audioCtx) audioCtx = new AudioCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   }
+
+  // 첫 터치시 오디오 언락
+  document.addEventListener('touchstart', () => {
+    getAudioCtx();
+  }, { once: true });
 
   // 돌림판 돌릴 때 슬롯머신 소리
   function playSpinSound() {
