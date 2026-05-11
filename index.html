@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>식사명령</title>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b0bd309351543ad63cb6f06aabf8e876&libraries=services"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --red: #E8220A;
+    --dark: #0D0D0D;
+    --cream: #F5F0E8;
+    --gold: #C9A84C;
+    --gray: #2A2A2A;
+    --light-gray: #3D3D3D;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: var(--dark);
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.1);
+  }
+
+  .screen {
+    width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0;
+    display: none; flex-direction: column;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ===== SPLASH ===== */
+  #splash {
+    background: var(--dark);
+    justify-content: center; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  #splash::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(232,34,10,0.15) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: translate(-50%,-50%) scale(1); opacity:0.5; }
+    50% { transform: translate(-50%,-50%) scale(1.2); opacity:1; }
+  }
+  .splash-content { text-align:center; z-index:1; animation: fadeInUp 0.8s ease forwards; }
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(30px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  .splash-logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 56px; color: var(--cream);
+    letter-spacing: -2px; line-height:1; margin-bottom:8px;
+  }
+  .splash-logo span { color: var(--red); }
+  .splash-badge {
+    display: inline-block;
+    background: var(--red);
+    color: white; font-size: 11px; font-weight: 700;
+    padding: 4px 12px; border-radius: 100px;
+    letter-spacing: 1px; margin-bottom: 16px;
+  }
+  .splash-slogan {
+    font-size: 14px; color: rgba(245,240,232,0.5);
+    font-weight: 300; letter-spacing: 0.5px; line-height: 1.6;
+  }
+  .splash-btn {
+    margin-top: 60px;
+    background: var(--red); color: white; border: none;
+    padding: 16px 48px; border-radius: 100px;
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .splash-btn:active { transform: scale(0.96); }
+
+  /* ===== LOADING ===== */
+  #loading {
+    background: var(--dark);
+    justify-content: center; align-items: center;
+    flex-direction: column; gap: 24px;
+  }
+  .loading-spinner {
+    width: 56px; height: 56px;
+    border: 3px solid var(--gray);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 20px; color: var(--cream);
+    text-align: center; line-height: 1.4;
+  }
+  .loading-sub { font-size: 13px; color: rgba(245,240,232,0.4); }
+
+  /* ===== RESTAURANT LIST ===== */
+  #restaurantList {
+    background: var(--dark);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .list-header {
+    padding: 52px 24px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .list-location {
+    font-size: 11px; color: var(--red);
+    font-weight: 700; letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .list-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 24px; color: var(--cream); line-height: 1.3;
+  }
+  .list-sub { font-size: 12px; color: rgba(245,240,232,0.4); margin-top: 4px; }
+  .restaurant-scroll {
+    flex: 1; overflow-y: scroll; padding: 16px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .restaurant-item {
+    background: var(--gray);
+    border-radius: 16px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+    cursor: pointer; border: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .restaurant-item:active { transform: scale(0.98); }
+  .restaurant-item.selected { border-color: var(--red); background: rgba(232,34,10,0.08); }
+  .restaurant-item.excluded { opacity: 0.35; }
+  .restaurant-emoji { font-size: 28px; flex-shrink: 0; }
+  .restaurant-info { flex: 1; }
+  .restaurant-name { font-size: 15px; font-weight: 700; color: var(--cream); margin-bottom: 3px; }
+  .restaurant-meta { font-size: 11px; color: rgba(245,240,232,0.4); display: flex; gap: 8px; }
+  .restaurant-rating { color: var(--gold); }
+  .restaurant-check {
+    width: 24px; height: 24px;
+    border: 2px solid var(--light-gray);
+    border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; transition: all 0.2s;
+  }
+  .restaurant-item.selected .restaurant-check {
+    background: var(--red); border-color: var(--red); color: white;
+  }
+  .list-footer { padding: 16px 24px 32px; }
+  .spin-btn {
+    width: 100%; background: var(--red); color: white; border: none;
+    padding: 18px; border-radius: 16px;
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .spin-btn:active { transform: scale(0.97); }
+  .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .selected-count {
+    text-align: center; font-size: 12px;
+    color: rgba(245,240,232,0.4); margin-bottom: 10px;
+  }
+  .selected-count span { color: var(--red); font-weight: 700; }
+
+  /* ===== ROULETTE ===== */
+  #roulette {
+    background: var(--dark);
+    justify-content: center; align-items: center;
+    flex-direction: column; gap: 0;
+    position: relative; overflow: hidden;
+  }
+  .roulette-header {
+    text-align: center; padding: 52px 24px 0; width: 100%;
+  }
+  .roulette-label {
+    font-size: 11px; color: var(--red);
+    font-weight: 700; letter-spacing: 3px; margin-bottom: 8px;
+  }
+  .roulette-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 26px; color: var(--cream);
+  }
+  .wheel-container {
+    position: relative; margin: 24px auto;
+    width: 300px; height: 300px;
+    flex-shrink: 0;
+  }
+  .wheel-pointer {
+    position: absolute; top: -16px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px; z-index: 10;
+    filter: drop-shadow(0 2px 8px rgba(232,34,10,0.8));
+  }
+  #wheelCanvas {
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(232,34,10,0.2), 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .spin-action-btn {
+    background: var(--red); color: white; border: none;
+    padding: 18px 56px; border-radius: 100px;
+    font-size: 18px; font-weight: 700;
+    font-family: 'Black Han Sans', sans-serif;
+    cursor: pointer; transition: all 0.3s;
+    letter-spacing: 1px;
+    box-shadow: 0 8px 24px rgba(232,34,10,0.4);
+  }
+  .spin-action-btn:active { transform: scale(0.96); }
+  .spin-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .rebel-once-btn {
+    background: rgba(232,34,10,0.12);
+    color: var(--cream);
+    border: 1.5px solid rgba(232,34,10,0.5);
+    padding: 14px 32px; border-radius: 100px;
+    font-size: 14px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; margin-top: 12px;
+    transition: all 0.2s; letter-spacing: -0.3px;
+  }
+  .rebel-once-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+  /* ===== RESULT ===== */
+  #resultScreen {
+    background: var(--dark);
+    justify-content: center; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .result-bg {
+    position: absolute; inset: 0;
+    display: flex; justify-content: center; align-items: center;
+  }
+  .result-ripple {
+    position: absolute; border-radius: 50%;
+    border: 2px solid var(--red);
+    animation: ripple 1.5s ease-out infinite; opacity: 0;
+  }
+  .result-ripple:nth-child(1) { width:200px; height:200px; animation-delay:0s; }
+  .result-ripple:nth-child(2) { width:350px; height:350px; animation-delay:0.4s; }
+  .result-ripple:nth-child(3) { width:500px; height:500px; animation-delay:0.8s; }
+  @keyframes ripple {
+    from { opacity:0.6; transform:scale(0.8); }
+    to { opacity:0; transform:scale(1); }
+  }
+  .result-content { text-align:center; z-index:1; padding:32px; }
+  .result-crown { font-size: 48px; margin-bottom: 8px; animation: bounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes bounce { from { transform:scale(0); } to { transform:scale(1); } }
+  .result-label { font-size: 11px; color: var(--red); font-weight: 700; letter-spacing: 3px; margin-bottom: 12px; }
+  .result-restaurant {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 48px; color: var(--cream); line-height: 1;
+    margin-bottom: 8px;
+  }
+  .result-meta {
+    font-size: 13px; color: rgba(245,240,232,0.5);
+    margin-bottom: 8px;
+  }
+  .result-quote {
+    font-size: 13px; color: rgba(245,240,232,0.4);
+    font-style: italic; line-height: 1.6; margin-bottom: 40px;
+  }
+  .result-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .confirm-btn {
+    background: var(--red); color: white; border: none;
+    padding: 18px; border-radius: 16px;
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .respin-btn {
+    background: transparent; color: rgba(245,240,232,0.5);
+    border: 1.5px solid rgba(245,240,232,0.2);
+    padding: 16px; border-radius: 16px;
+    font-size: 14px; font-weight: 500;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .respin-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+  .confirm-btn:active, .respin-btn:active { transform: scale(0.97); }
+
+  /* ===== DONE ===== */
+  #done {
+    background: var(--cream);
+    justify-content: center; align-items: center;
+  }
+  .done-content { text-align: center; padding: 32px; }
+  .done-emoji { font-size: 72px; margin-bottom: 20px; animation: bounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  .done-title { font-family: 'Black Han Sans', sans-serif; font-size: 32px; color: var(--dark); margin-bottom: 8px; }
+  .done-restaurant { font-family: 'Black Han Sans', sans-serif; font-size: 24px; color: var(--red); margin-bottom: 16px; }
+  .done-desc { font-size: 14px; color: #999; line-height: 1.7; margin-bottom: 40px; }
+  .done-btn {
+    background: var(--dark); color: white; border: none;
+    padding: 16px 48px; border-radius: 100px;
+    font-size: 16px; font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .done-btn:active { transform: scale(0.97); }
+
+  .mood-filter-card {
+    background: var(--gray); border-radius:20px;
+    padding:24px 16px; text-align:center;
+    cursor:pointer; border:2px solid transparent;
+    transition:all 0.2s;
+  }
+  .mood-filter-card:active { transform:scale(0.95); }
+  .mood-filter-card.selected { border-color:var(--red); background:rgba(232,34,10,0.1); }
+
+  #restaurantScroll::-webkit-scrollbar { display: none; }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- 1. SPLASH -->
+  <div class="screen" id="splash" style="display:flex;">
+    <div class="splash-content">
+      <div class="splash-logo">식사<span>명령</span></div>
+      <div class="splash-badge">돌림판 모드</div>
+      <div class="splash-slogan">뭐 먹을지 고민하지 마.<br>결정은 내가 한다.</div>
+      <button class="splash-btn" onclick="go('mood')">주변 식당 찾기 📍</button>
+    </div>
+  </div>
+
+  <!-- 1-B. 기분 선택 -->
+  <div class="screen" id="mood">
+    <div style="padding: 60px 24px 40px; display:flex; flex-direction:column; height:100%; background:var(--dark);">
+      <div style="margin-bottom:40px;">
+        <div style="font-size:11px; color:var(--red); font-weight:700; letter-spacing:3px; margin-bottom:10px;">오늘의 명령 준비 중</div>
+        <div style="font-family:'Black Han Sans',sans-serif; font-size:28px; color:var(--cream); line-height:1.3;">오늘 점심<br>기분이 어때?</div>
+        <div style="font-size:12px; color:rgba(245,240,232,0.4); margin-top:8px;">선택하면 그 종류 식당만 돌림판에 올라간다</div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; flex:1; align-content:center;">
+        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'hearty')">
+          <div style="font-size:36px; margin-bottom:10px;">🔥</div>
+          <div style="font-size:14px; font-weight:700; color:var(--cream);">든든하게</div>
+          <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">한식·고기·중식</div>
+        </div>
+        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'light')">
+          <div style="font-size:36px; margin-bottom:10px;">🥗</div>
+          <div style="font-size:14px; font-weight:700; color:var(--cream);">가볍게</div>
+          <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">샐러드·일식·죽</div>
+        </div>
+        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'warm')">
+          <div style="font-size:36px; margin-bottom:10px;">🍜</div>
+          <div style="font-size:14px; font-weight:700; color:var(--cream);">따뜻하게</div>
+          <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">국밥·찌개·라멘</div>
+        </div>
+        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'special')">
+          <div style="font-size:36px; margin-bottom:10px;">🎉</div>
+          <div style="font-size:14px; font-weight:700; color:var(--cream);">특별하게</div>
+          <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">양식·뷔페·이색</div>
+        </div>
+      </div>
+      <button style="background:rgba(245,240,232,0.08); color:var(--cream); border:1.5px solid rgba(245,240,232,0.25); padding:16px; border-radius:16px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; margin-top:20px; width:100%; letter-spacing:-0.3px;" onclick="selectMoodFilter(null, 'all')">🍽️ 상관없다, 다 보여줘</button>
+    </div>
+  </div>
+
+  <!-- 2. LOADING -->
+  <div class="screen" id="loading">
+    <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; gap:20px;">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">주변 식당을<br>소환하는 중...</div>
+      <div class="loading-sub">도보 10분 이내</div>
+    </div>
+  </div>
+
+  <!-- 3. RESTAURANT LIST -->
+  <div class="screen" id="restaurantList" style="display:none; flex-direction:column; background:var(--dark);">
+    <div style="padding:52px 24px 12px; flex-shrink:0; border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:11px; color:var(--red); font-weight:700; letter-spacing:2px; margin-bottom:6px;">📍 현재 위치 기준 · 도보 10분</div>
+      <div style="font-family:'Black Han Sans',sans-serif; font-size:24px; color:var(--cream); line-height:1.3;">돌림판에 올릴<br>식당을 골라라</div>
+      <div style="font-size:12px; color:rgba(245,240,232,0.4); margin-top:4px;">최소 2개 이상 선택</div>
+    </div>
+    <div id="restaurantScroll" style="flex:1; overflow-y:auto; padding:12px 24px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch;"></div>
+    <div style="padding:12px 24px 32px; flex-shrink:0; background:var(--dark);">
+      <div style="text-align:center; font-size:12px; color:rgba(245,240,232,0.4); margin-bottom:10px;"><span id="selectedCountText">0</span>개 선택됨</div>
+      <button id="spinBtn" onclick="goToRoulette()" disabled style="width:100%; background:var(--red); color:white; border:none; padding:18px; border-radius:16px; font-size:16px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:all 0.2s; opacity:0.4;">최소 2개 선택하세요</button>
+    </div>
+  </div>
+
+  <!-- 4. ROULETTE -->
+  <div class="screen" id="roulette">
+    <div class="roulette-header">
+      <div class="roulette-label">명령 실행 중</div>
+      <div class="roulette-title">독재자가 결정한다</div>
+    </div>
+    <div class="wheel-container">
+      <div class="wheel-pointer">▼</div>
+      <canvas id="wheelCanvas" width="300" height="300"></canvas>
+    </div>
+    <button class="spin-action-btn" id="spinActionBtn" onclick="spinWheel()">돌려라 !</button>
+    <button class="rebel-once-btn" id="rebelBtn" onclick="rebelSpin()">🏴‍☠️ 반란 선포 (1회 한정)</button>
+  </div>
+
+  <!-- 5. RESULT -->
+  <div class="screen" id="resultScreen">
+    <div class="result-bg">
+      <div class="result-ripple"></div>
+      <div class="result-ripple"></div>
+      <div class="result-ripple"></div>
+    </div>
+    <div class="result-content">
+      <div class="result-crown">👑</div>
+      <div class="result-label">오늘의 명령</div>
+      <div class="result-restaurant" id="resultName">—</div>
+      <div class="result-meta" id="resultMeta"></div>
+      <div class="result-quote" id="resultQuote"></div>
+      <div class="result-actions">
+        <button class="confirm-btn" onclick="confirmResult()">여기서 먹겠다 🫡</button>
+        <button class="respin-btn" id="respinBtn" onclick="goRespinFromResult()">🏴‍☠️ 반란 — 한 번만 다시 돌린다</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. DONE -->
+  <div class="screen" id="done">
+    <div class="done-content">
+      <div class="done-emoji">🍽️</div>
+      <div class="done-title">오늘의 점심</div>
+      <div class="done-restaurant" id="doneRestaurant"></div>
+      <div class="done-desc">독재자가 결정했고<br>당신은 복종했다.<br>맛있게 먹어라 🫡</div>
+      <button class="done-btn" onclick="resetAll()">다시 시작</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ===== 더미 식당 데이터 (카카오맵 API 연동 전 목업) =====
+  const RESTAURANTS = [
+    { name: '명동칼국수', category: '칼국수', distance: '3분', rating: '4.5', emoji: '🍜' },
+    { name: '참이맛 순대국', category: '순대국밥', distance: '5분', rating: '4.3', emoji: '🍲' },
+    { name: '롯데리아', category: '패스트푸드', distance: '2분', rating: '3.8', emoji: '🍔' },
+    { name: '본죽 강남점', category: '죽/한식', distance: '6분', rating: '4.1', emoji: '🥣' },
+    { name: '이치란 라멘', category: '라멘', distance: '7분', rating: '4.7', emoji: '🍜' },
+    { name: '교촌치킨', category: '치킨', distance: '4분', rating: '4.2', emoji: '🍗' },
+    { name: '하남돼지집', category: '삼겹살', distance: '8분', rating: '4.6', emoji: '🥩' },
+    { name: '스시로', category: '초밥', distance: '9분', rating: '4.4', emoji: '🍣' },
+    { name: '맘스터치', category: '버거', distance: '3분', rating: '4.0', emoji: '🍔' },
+    { name: '신전떡볶이', category: '분식', distance: '5분', rating: '4.2', emoji: '🌶️' },
+  ];
+
+  const QUOTES = [
+    '"오늘은 논쟁 없다. 여기서 먹어라."',
+    '"독재자의 선택을 의심하지 마라."',
+    '"운명이 결정했다. 복종하라."',
+    '"이보다 좋은 선택은 없다. 믿어라."',
+    '"저항은 무의미하다. 맛있게 먹어라."',
+  ];
+
+  const COLORS = [
+    '#E8220A','#C9A84C','#2A2A2A','#8B3A3A','#4A6741',
+    '#3A4A68','#6B3A68','#3A6B68','#68553A','#3A3A68',
+  ];
+
+  let selectedRestaurants = [];
+  let rebelUsed = false;
+  let currentResult = null;
+  let isSpinning = false;
+  let wheelRotation = 0;
+
+  function forcedResult(originalIndex) {
+    const restaurant = RESTAURANTS[originalIndex];
+    selectedRestaurants = [{ ...restaurant, originalIndex }];
+    currentResult = { restaurant, originalIndex: 0 };
+    showResult(restaurant);
+  }
+
+  // ===== 기분별 필터 매핑 =====
+  const MOOD_FILTER = {
+    hearty:  ['한식', '칼국수', '순대국밥', '삼겹살', '치킨', '중식', '고기'],
+    light:   ['죽/한식', '초밥', '일식', '샐러드', '분식'],
+    warm:    ['칼국수', '순대국밥', '라멘', '죽/한식'],
+    special: ['패스트푸드', '버거', '초밥', '양식'],
+    all:     null,
+  };
+
+  let currentMood = 'all';
+
+  function selectMoodFilter(el, mood) {
+    currentMood = mood;
+    if (el) {
+      document.querySelectorAll('.mood-filter-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      setTimeout(() => startLoading(), 300);
+    } else {
+      startLoading();
+    }
+  }
+
+  // ===== 카카오맵 API로 실제 주변 식당 검색 =====
+  const MOOD_KEYWORDS = {
+    hearty:  ['고기집', '한식', '중식', '삼겹살', '치킨'],
+    light:   ['샐러드', '일식', '죽', '분식'],
+    warm:    ['국밥', '찌개', '라멘', '칼국수'],
+    special: ['양식', '뷔페', '이탈리안', '스테이크'],
+    all:     ['음식점'],
+  };
+
+  const EMOJI_MAP = {
+    '고기집':'🥩','한식':'🍲','중식':'🥡','삼겹살':'🥩','치킨':'🍗',
+    '샐러드':'🥗','일식':'🍣','죽':'🥣','분식':'🌶️',
+    '국밥':'🍲','찌개':'🍲','라멘':'🍜','칼국수':'🍜',
+    '양식':'🍝','뷔페':'🍽️','이탈리안':'🍝','스테이크':'🥩',
+    '음식점':'🍽️',
+  };
+
+  function startLoading() {
+    go('loading');
+    // 현재 위치 가져오기
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => searchNearbyRestaurants(pos.coords.latitude, pos.coords.longitude),
+        err => {
+          console.warn('위치 접근 실패, 기본 위치 사용');
+          // 위치 접근 실패시 서울 중심부 기본값
+          searchNearbyRestaurants(37.5665, 126.9780);
+        },
+        { timeout: 5000 }
+      );
+    } else {
+      searchNearbyRestaurants(37.5665, 126.9780);
+    }
+  }
+
+  function searchNearbyRestaurants(lat, lng) {
+    const keywords = MOOD_KEYWORDS[currentMood] || ['음식점'];
+    const ps = new kakao.maps.services.Places();
+    let allResults = [];
+    let done = 0;
+
+    keywords.forEach(keyword => {
+      ps.keywordSearch(keyword, (data, status) => {
+        done++;
+        if (status === kakao.maps.services.Status.OK) {
+          data.forEach(place => {
+            // 800m 이내만 필터
+            const dist = getDistance(lat, lng, parseFloat(place.y), parseFloat(place.x));
+            if (dist <= 800) {
+              const emoji = EMOJI_MAP[keyword] || '🍽️';
+              const minutes = Math.round(dist / 80); // 도보 분 계산
+              allResults.push({
+                name: place.place_name,
+                category: place.category_name.split('>').pop().trim(),
+                distance: `${minutes}분`,
+                distanceM: dist,
+                rating: (3.5 + Math.random() * 1.5).toFixed(1),
+                emoji: emoji,
+                url: place.place_url,
+              });
+            }
+          });
+        }
+        if (done === keywords.length) {
+          // 중복 제거 + 거리순 정렬
+          const unique = [...new Map(allResults.map(r => [r.name, r])).values()]
+            .sort((a, b) => a.distanceM - b.distanceM)
+            .slice(0, 12);
+          RESTAURANTS.length = 0;
+          unique.forEach(r => RESTAURANTS.push(r));
+          renderRestaurantList();
+          go('restaurantList');
+        }
+      }, {
+        location: new kakao.maps.LatLng(lat, lng),
+        radius: 800,
+        sort: kakao.maps.services.SortBy.DISTANCE,
+      });
+    });
+  }
+
+  // 두 좌표 사이 거리 계산 (미터)
+  function getDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ===== 식당 리스트 렌더링 (기분 필터 적용) =====
+  function renderRestaurantList() {
+    const scroll = document.getElementById('restaurantScroll');
+    scroll.innerHTML = '';
+    selectedRestaurants = [];
+
+    const allowedCategories = MOOD_FILTER[currentMood];
+    const filtered = RESTAURANTS.map((r, i) => ({ ...r, originalIndex: i }))
+      .filter(r => !allowedCategories || allowedCategories.includes(r.category));
+
+    if (filtered.length === 0) {
+      scroll.innerHTML = `<div style="text-align:center; padding:40px; color:rgba(245,240,232,0.4); font-size:14px;">주변에 해당 식당이 없어요 😢<br><br><span style="color:var(--red); cursor:pointer; font-weight:700;" onclick="go('mood')">← 기분 다시 선택하기</span></div>`;
+      return;
+    }
+
+    // 식당 1개면 돌림판 없이 바로 결정
+    if (filtered.length === 1) {
+      scroll.innerHTML = `<div style="text-align:center; padding:40px;">
+        <div style="font-size:48px; margin-bottom:16px;">${filtered[0].emoji}</div>
+        <div style="font-family:'Black Han Sans',sans-serif; font-size:24px; color:var(--cream); margin-bottom:8px;">${filtered[0].name}</div>
+        <div style="font-size:13px; color:rgba(245,240,232,0.4); margin-bottom:32px;">${filtered[0].category} · 도보 ${filtered[0].distance} · ★ ${filtered[0].rating}</div>
+        <div style="font-size:14px; color:rgba(245,240,232,0.5); font-style:italic; margin-bottom:32px;">"주변에 선택지가 없다.<br>여기서 먹어라." 🫡</div>
+        <button onclick="forcedResult(${filtered[0].originalIndex})" style="background:var(--red); color:white; border:none; padding:16px 32px; border-radius:100px; font-size:15px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer;">명령에 복종한다 🫡</button>
+        <br><br>
+        <span style="font-size:12px; color:rgba(245,240,232,0.3); cursor:pointer;" onclick="go('mood')">← 기분 다시 선택하기</span>
+      </div>`;
+      return;
+    }
+
+    filtered.forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'restaurant-item';
+      el.innerHTML = `
+        <div class="restaurant-emoji">${r.emoji}</div>
+        <div class="restaurant-info">
+          <div class="restaurant-name">${r.name}</div>
+          <div class="restaurant-meta">
+            <span>${r.category}</span>
+            <span>·</span>
+            <span>${r.distance}</span>
+            <span>·</span>
+            <span class="restaurant-rating">★ ${r.rating}</span>
+          </div>
+        </div>
+        <div class="restaurant-check">✓</div>
+      `;
+      el.onclick = () => toggleRestaurant(el, r.originalIndex);
+      scroll.appendChild(el);
+    });
+    updateSpinBtn();
+  }
+
+  function toggleRestaurant(el, index) {
+    const idx = selectedRestaurants.findIndex(r => r.originalIndex === index);
+    if (idx === -1) {
+      selectedRestaurants.push({ ...RESTAURANTS[index], originalIndex: index });
+      el.classList.add('selected');
+    } else {
+      selectedRestaurants.splice(idx, 1);
+      el.classList.remove('selected');
+    }
+    updateSpinBtn();
+  }
+
+  function updateSpinBtn() {
+    const count = selectedRestaurants.length;
+    document.getElementById('selectedCountText').textContent = count;
+    const btn = document.getElementById('spinBtn');
+    if (count >= 2) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.textContent = `돌림판 돌리기 🎰 (${count}개)`;
+    } else {
+      btn.disabled = true;
+      btn.style.opacity = '0.4';
+      btn.textContent = '최소 2개 선택하세요';
+    }
+  }
+
+  // ===== 룰렛 화면으로 이동 =====
+  function goToRoulette() {
+    rebelUsed = false;
+    document.getElementById('rebelBtn').disabled = false;
+    document.getElementById('rebelBtn').textContent = '🏴‍☠️ 반란 (1회 한정)';
+    document.getElementById('spinActionBtn').disabled = false;
+    go('roulette');
+    drawWheel(0);
+  }
+
+  // ===== 캔버스 돌림판 그리기 =====
+  function drawWheel(rotation) {
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = 150, cy = 150, r = 148;
+    const items = selectedRestaurants;
+    const slice = (2 * Math.PI) / items.length;
+
+    ctx.clearRect(0, 0, 300, 300);
+
+    items.forEach((item, i) => {
+      const start = rotation + i * slice;
+      const end = start + slice;
+
+      // 조각
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 텍스트
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + slice / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = `bold ${items.length > 6 ? 11 : 13}px Noto Sans KR`;
+      ctx.fillText(item.emoji + ' ' + item.name, r - 12, 5);
+      ctx.restore();
+    });
+
+    // 중앙 원
+    ctx.beginPath();
+    ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
+    ctx.fillStyle = '#0D0D0D';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(232,34,10,0.6)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 중앙 텍스트
+    ctx.fillStyle = 'rgba(245,240,232,0.8)';
+    ctx.font = 'bold 11px Noto Sans KR';
+    ctx.textAlign = 'center';
+    ctx.fillText('명령', cx, cy + 4);
+  }
+
+  // ===== 돌림판 회전 =====
+  function spinWheel(excludeIndex = -1) {
+    if (isSpinning) return;
+    isSpinning = true;
+    document.getElementById('spinActionBtn').disabled = true;
+    document.getElementById('rebelBtn').disabled = true;
+
+    const items = selectedRestaurants;
+    const slice = (2 * Math.PI) / items.length;
+
+    let resultIdx;
+    do { resultIdx = Math.floor(Math.random() * items.length); }
+    while (excludeIndex !== -1 && resultIdx === excludeIndex && items.length > 1);
+
+    // 목표 각도: 포인터(위쪽 = -π/2)가 결과 조각 중앙을 가리키도록
+    const targetAngle = -Math.PI / 2 - (resultIdx * slice + slice / 2);
+    const spins = 5 + Math.random() * 3;
+    const totalRotation = spins * 2 * Math.PI + targetAngle - (wheelRotation % (2 * Math.PI));
+
+    const duration = 4000;
+    const start = performance.now();
+    const startRot = wheelRotation;
+
+    function animate(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4);
+      wheelRotation = startRot + totalRotation * ease;
+      drawWheel(wheelRotation);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        isSpinning = false;
+        currentResult = { restaurant: items[resultIdx], originalIndex: resultIdx };
+        showResult(items[resultIdx]);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+
+  // ===== 반란: 한 번 더 돌리기 =====
+  function rebelSpin() {
+    if (rebelUsed) return;
+    rebelUsed = true;
+    document.getElementById('rebelBtn').disabled = true;
+    document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
+    spinWheel(currentResult ? currentResult.originalIndex : -1);
+  }
+
+  // ===== 결과 화면 =====
+  function showResult(restaurant) {
+    document.getElementById('resultName').textContent = restaurant.emoji + ' ' + restaurant.name;
+    document.getElementById('resultMeta').textContent = restaurant.category + ' · 도보 ' + restaurant.distance + ' · ★ ' + restaurant.rating;
+    document.getElementById('resultQuote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    const respinBtn = document.getElementById('respinBtn');
+    respinBtn.disabled = rebelUsed;
+    respinBtn.style.opacity = rebelUsed ? '0.2' : '1';
+    go('resultScreen');
+  }
+
+  // ===== 결과에서 반란 =====
+  function goRespinFromResult() {
+    if (rebelUsed) return;
+    rebelUsed = true;
+    go('roulette');
+    document.getElementById('rebelBtn').disabled = true;
+    document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
+    document.getElementById('spinActionBtn').disabled = false;
+    setTimeout(() => spinWheel(currentResult ? currentResult.originalIndex : -1), 300);
+  }
+
+  // ===== 확정 =====
+  function confirmResult() {
+    document.getElementById('doneRestaurant').textContent = currentResult.restaurant.emoji + ' ' + currentResult.restaurant.name;
+    go('done');
+  }
+
+  // ===== 리셋 → 첫 화면으로 =====
+  function resetAll() {
+    rebelUsed = false;
+    currentResult = null;
+    wheelRotation = 0;
+    isSpinning = false;
+    currentMood = 'all';
+    document.querySelectorAll('.mood-filter-card').forEach(c => c.classList.remove('selected'));
+    go('splash');
+  }
+
+  function go(id) {
+    document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    const target = document.getElementById(id);
+    target.style.display = 'flex';
+  }
+</script>
+</body>
+</html>
