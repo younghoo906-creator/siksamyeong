@@ -354,7 +354,7 @@
       <div class="splash-logo">식사<span>명령</span></div>
       <div class="splash-badge">돌림판 모드</div>
       <div class="splash-slogan">뭐 먹을지 고민하지 마.<br>결정은 내가 한다.</div>
-      <button class="splash-btn" onclick="go('mood')">주변 식당 찾기 📍</button>
+      <button class="splash-btn" onclick="playClickSound(); go('mood')">주변 식당 찾기 📍</button>
     </div>
   </div>
 
@@ -367,27 +367,27 @@
         <div style="font-size:12px; color:rgba(245,240,232,0.4); margin-top:8px;">선택하면 그 종류 식당만 돌림판에 올라간다</div>
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; flex:1; align-content:center;">
-        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'hearty')">
+        <div class="mood-filter-card" onclick="playClickSound(); selectMoodFilter(this, 'hearty')">
           <div style="font-size:36px; margin-bottom:10px;">🔥</div>
           <div style="font-size:14px; font-weight:700; color:var(--cream);">든든하게</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">한식·고기·중식</div>
         </div>
-        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'light')">
+        <div class="mood-filter-card" onclick="playClickSound(); selectMoodFilter(this, 'light')">
           <div style="font-size:36px; margin-bottom:10px;">🥗</div>
           <div style="font-size:14px; font-weight:700; color:var(--cream);">가볍게</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">샐러드·일식·죽</div>
         </div>
-        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'warm')">
+        <div class="mood-filter-card" onclick="playClickSound(); selectMoodFilter(this, 'warm')">
           <div style="font-size:36px; margin-bottom:10px;">🍜</div>
           <div style="font-size:14px; font-weight:700; color:var(--cream);">따뜻하게</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">국밥·찌개·라멘</div>
         </div>
-        <div class="mood-filter-card" onclick="selectMoodFilter(this, 'special')">
+        <div class="mood-filter-card" onclick="playClickSound(); selectMoodFilter(this, 'special')">
           <div style="font-size:36px; margin-bottom:10px;">🎉</div>
           <div style="font-size:14px; font-weight:700; color:var(--cream);">특별하게</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">양식·뷔페·이색</div>
         </div>
-        <div class="mood-filter-card" style="grid-column: 1 / -1; background:rgba(245,240,232,0.06); border:1.5px solid rgba(245,240,232,0.2);" onclick="selectMoodFilter(null, 'all')">
+        <div class="mood-filter-card" style="grid-column: 1 / -1; background:rgba(245,240,232,0.06); border:1.5px solid rgba(245,240,232,0.2);" onclick="playClickSound(); selectMoodFilter(null, 'all')">
           <div style="font-size:28px; margin-bottom:8px;">🍽️</div>
           <div style="font-size:14px; font-weight:700; color:var(--cream);">상관없다, 다 보여줘</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">전체 음식점</div>
@@ -421,8 +421,8 @@
   </div>
 
   <!-- 4. ROULETTE -->
-  <div class="screen" id="roulette">
-    <div class="roulette-header">
+  <div class="screen" id="roulette" style="justify-content:center; align-items:center; gap:20px;">
+    <div class="roulette-header" style="text-align:center; padding:0;">
       <div class="roulette-label">명령 실행 중</div>
       <div class="roulette-title">독재자가 결정한다</div>
     </div>
@@ -430,7 +430,7 @@
       <div class="wheel-pointer">▼</div>
       <canvas id="wheelCanvas" width="300" height="300"></canvas>
     </div>
-    <button class="spin-action-btn" id="spinActionBtn" onclick="playSpinSound(); spinWheel()">돌려라 !</button>
+    <button class="spin-action-btn" id="spinActionBtn" onclick="playClickSound(); spinWheel()">돌려라 !</button>
     <button class="rebel-once-btn" id="rebelBtn" onclick="playRebelSound(); rebelSpin()" style="display:none;">🏴‍☠️ 반란 선포 (1회 한정)</button>
   </div>
 
@@ -448,8 +448,8 @@
       <div class="result-meta" id="resultMeta"></div>
       <div class="result-quote" id="resultQuote"></div>
       <div class="result-actions">
-        <button class="confirm-btn" onclick="confirmResult()">여기서 먹겠다 🫡</button>
-        <button id="kakaoMapBtn" style="display:none; background:rgba(254,229,0,0.15); color:#FEE500; border:1.5px solid rgba(254,229,0,0.4); padding:14px; border-radius:16px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:all 0.2s;">💬 카카오맵에서 메뉴 보기</button>
+        <button class="confirm-btn" onclick="playClickSound(); confirmResult()">여기서 먹겠다 🫡</button>
+        <button id="kakaoMapBtn" style="display:none; background:rgba(254,229,0,0.15); color:#FEE500; border:1.5px solid rgba(254,229,0,0.4); padding:14px; border-radius:16px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:all 0.2s;" onclick="playClickSound()">💬 카카오맵에서 메뉴 보기</button>
         <button class="respin-btn" id="respinBtn" onclick="playRebelSound(); goRespinFromResult()">🏴‍☠️ 반란 — 한 번만 다시 돌린다</button>
       </div>
     </div>
@@ -462,7 +462,7 @@
       <div class="done-title">오늘의 점심</div>
       <div class="done-restaurant" id="doneRestaurant"></div>
       <div class="done-desc">독재자가 결정했고<br>당신은 복종했다.<br>맛있게 먹어라 🫡</div>
-      <button class="done-btn" onclick="resetAll()">다시 시작</button>
+      <button class="done-btn" onclick="playClickSound(); resetAll()">다시 시작</button>
       <div style="margin-top:32px; font-size:11px; color:rgba(13,13,13,0.3); letter-spacing:1px;">made by YOUNG HOO KIM</div>
     </div>
   </div>
@@ -497,24 +497,54 @@
   document.addEventListener('touchstart', unlockAudio, { once: false });
   document.addEventListener('click', unlockAudio, { once: false });
 
-  // 돌림판 돌릴 때 슬롯머신 소리
-  function playSpinSound() {
+  // 돌림판 돌릴 때 슬롯머신 소리 (duration 파라미터로 싱크 맞춤)
+  function playSpinSound(duration = 4.0) {
     const ctx = getAudioCtx();
-    const duration = 4.0;
     const startTime = ctx.currentTime;
-    for (let i = 0; i < 40; i++) {
+    const count = Math.floor(duration * 10);
+    for (let i = 0; i < count; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      const t = startTime + i * (duration / 40);
-      const freq = 300 + Math.random() * 400;
+      const t = startTime + i * (duration / count);
+      // 처음엔 빠르고 촘촘하게, 끝으로 갈수록 느리게
+      const progress = i / count;
+      const freq = 500 - progress * 300 + Math.random() * 100;
       osc.frequency.setValueAtTime(freq, t);
-      gain.gain.setValueAtTime(0.08, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      const vol = 0.1 - progress * 0.06;
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
       osc.start(t);
-      osc.stop(t + 0.08);
+      osc.stop(t + 0.07);
     }
+    // 마지막에 딱 멈추는 소리
+    const stopOsc = ctx.createOscillator();
+    const stopGain = ctx.createGain();
+    stopOsc.connect(stopGain);
+    stopGain.connect(ctx.destination);
+    stopOsc.frequency.setValueAtTime(200, startTime + duration);
+    stopOsc.type = 'sine';
+    stopGain.gain.setValueAtTime(0.15, startTime + duration);
+    stopGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration + 0.3);
+    stopOsc.start(startTime + duration);
+    stopOsc.stop(startTime + duration + 0.3);
+  }
+
+  // 버튼 클릭 뽁뽁 효과음
+  function playClickSound() {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.08);
   }
 
   // 결과 나올 때 팡파레
@@ -892,7 +922,6 @@
     do { resultIdx = Math.floor(Math.random() * items.length); }
     while (excludeIndex !== -1 && resultIdx === excludeIndex && items.length > 1);
 
-    // 목표 각도: 포인터(위쪽 = -π/2)가 결과 조각 중앙을 가리키도록
     const targetAngle = -Math.PI / 2 - (resultIdx * slice + slice / 2);
     const spins = 5 + Math.random() * 3;
     const totalRotation = spins * 2 * Math.PI + targetAngle - (wheelRotation % (2 * Math.PI));
@@ -900,6 +929,9 @@
     const duration = 4000;
     const start = performance.now();
     const startRot = wheelRotation;
+
+    // 소리를 애니메이션과 동일한 duration으로 실행
+    playSpinSound(duration / 1000);
 
     function animate(now) {
       const elapsed = now - start;
@@ -913,12 +945,10 @@
       } else {
         isSpinning = false;
         currentResult = { restaurant: items[resultIdx], originalIndex: resultIdx };
-        // 반란버튼 표시 (첫 스핀 완료 후)
         if (!rebelUsed) {
           const rebelBtn = document.getElementById('rebelBtn');
           rebelBtn.style.display = 'block';
         }
-        // 1.5초 후 결과 화면으로
         setTimeout(() => showResult(items[resultIdx]), 1500);
       }
     }
@@ -931,7 +961,6 @@
     rebelUsed = true;
     document.getElementById('rebelBtn').disabled = true;
     document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
-    playSpinSound();
     spinWheel(currentResult ? currentResult.originalIndex : -1);
   }
 
@@ -965,7 +994,6 @@
     document.getElementById('rebelBtn').disabled = true;
     document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
     document.getElementById('spinActionBtn').disabled = false;
-    playSpinSound();
     setTimeout(() => spinWheel(currentResult ? currentResult.originalIndex : -1), 300);
   }
 
