@@ -562,6 +562,9 @@
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.1);
   }
+
+  // 버튼 클릭 뽁뽁 효과음
+  function playClickSound() {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
