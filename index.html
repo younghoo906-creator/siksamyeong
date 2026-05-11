@@ -331,6 +331,8 @@
 </style>
 </head>
 <body>
+<div id="kakaoMapHidden" style="width:1px;height:1px;position:absolute;left:-9999px;"></div>
+
 <div class="phone">
 
   <!-- 1. SPLASH -->
@@ -372,8 +374,12 @@
           <div style="font-size:14px; font-weight:700; color:var(--cream);">특별하게</div>
           <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">양식·뷔페·이색</div>
         </div>
+        <div class="mood-filter-card" style="grid-column: 1 / -1; background:rgba(245,240,232,0.06); border:1.5px solid rgba(245,240,232,0.2);" onclick="selectMoodFilter(null, 'all')">
+          <div style="font-size:28px; margin-bottom:8px;">🍽️</div>
+          <div style="font-size:14px; font-weight:700; color:var(--cream);">상관없다, 다 보여줘</div>
+          <div style="font-size:11px; color:rgba(245,240,232,0.4); margin-top:4px;">전체 음식점</div>
+        </div>
       </div>
-      <button style="background:rgba(245,240,232,0.08); color:var(--cream); border:1.5px solid rgba(245,240,232,0.25); padding:16px; border-radius:16px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; margin-top:20px; width:100%; letter-spacing:-0.3px;" onclick="selectMoodFilter(null, 'all')">🍽️ 상관없다, 다 보여줘</button>
     </div>
   </div>
 
@@ -410,8 +416,8 @@
       <div class="wheel-pointer">▼</div>
       <canvas id="wheelCanvas" width="300" height="300"></canvas>
     </div>
-    <button class="spin-action-btn" id="spinActionBtn" onclick="spinWheel()">돌려라 !</button>
-    <button class="rebel-once-btn" id="rebelBtn" onclick="rebelSpin()">🏴‍☠️ 반란 선포 (1회 한정)</button>
+    <button class="spin-action-btn" id="spinActionBtn" onclick="playSpinSound(); spinWheel()">돌려라 !</button>
+    <button class="rebel-once-btn" id="rebelBtn" onclick="playRebelSound(); rebelSpin()">🏴‍☠️ 반란 선포 (1회 한정)</button>
   </div>
 
   <!-- 5. RESULT -->
@@ -429,7 +435,8 @@
       <div class="result-quote" id="resultQuote"></div>
       <div class="result-actions">
         <button class="confirm-btn" onclick="confirmResult()">여기서 먹겠다 🫡</button>
-        <button class="respin-btn" id="respinBtn" onclick="goRespinFromResult()">🏴‍☠️ 반란 — 한 번만 다시 돌린다</button>
+        <button id="kakaoMapBtn" style="display:none; background:rgba(254,229,0,0.15); color:#FEE500; border:1.5px solid rgba(254,229,0,0.4); padding:14px; border-radius:16px; font-size:14px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:all 0.2s;">💬 카카오맵에서 메뉴 보기</button>
+        <button class="respin-btn" id="respinBtn" onclick="playRebelSound(); goRespinFromResult()">🏴‍☠️ 반란 — 한 번만 다시 돌린다</button>
       </div>
     </div>
   </div>
@@ -442,12 +449,84 @@
       <div class="done-restaurant" id="doneRestaurant"></div>
       <div class="done-desc">독재자가 결정했고<br>당신은 복종했다.<br>맛있게 먹어라 🫡</div>
       <button class="done-btn" onclick="resetAll()">다시 시작</button>
+      <div style="margin-top:32px; font-size:11px; color:rgba(13,13,13,0.3); letter-spacing:1px;">made by YOUNG HOO KIM</div>
     </div>
   </div>
 
 </div>
 
 <script>
+  // ===== 🎵 효과음 (Web Audio API) =====
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    return audioCtx;
+  }
+
+  // 돌림판 돌릴 때 슬롯머신 소리
+  function playSpinSound() {
+    const ctx = getAudioCtx();
+    const duration = 4.0;
+    const startTime = ctx.currentTime;
+    for (let i = 0; i < 40; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = startTime + i * (duration / 40);
+      const freq = 300 + Math.random() * 400;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t);
+      osc.stop(t + 0.08);
+    }
+  }
+
+  // 결과 나올 때 팡파레
+  function playFanfareSound() {
+    const ctx = getAudioCtx();
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t = ctx.currentTime + i * 0.18;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.4);
+    });
+  }
+
+  // 반란 성공 드라마틱 효과음
+  function playRebelSound() {
+    const ctx = getAudioCtx();
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(150, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5);
+    osc2.frequency.setValueAtTime(155, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(82, ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.6);
+    osc2.start(ctx.currentTime);
+    osc2.stop(ctx.currentTime + 0.6);
+  }
+
   // ===== 더미 식당 데이터 (카카오맵 API 연동 전 목업) =====
   const RESTAURANTS = [
     { name: '명동칼국수', category: '칼국수', distance: '3분', rating: '4.5', emoji: '🍜' },
@@ -549,49 +628,70 @@
       setTimeout(() => searchNearbyRestaurants(lat, lng), 300);
       return;
     }
-    const keywords = MOOD_KEYWORDS[currentMood] || ['음식점'];
-    const ps = new kakao.maps.services.Places();
-    let allResults = [];
-    let done = 0;
 
-    keywords.forEach(keyword => {
-      ps.keywordSearch(keyword, (data, status) => {
-        done++;
-        if (status === kakao.maps.services.Status.OK) {
-          data.forEach(place => {
-            // 800m 이내만 필터
-            const dist = getDistance(lat, lng, parseFloat(place.y), parseFloat(place.x));
-            if (dist <= 800) {
-              const emoji = EMOJI_MAP[keyword] || '🍽️';
-              const minutes = Math.round(dist / 80); // 도보 분 계산
-              allResults.push({
-                name: place.place_name,
-                category: place.category_name.split('>').pop().trim(),
-                distance: `${minutes}분`,
-                distanceM: dist,
-                rating: (3.5 + Math.random() * 1.5).toFixed(1),
-                emoji: emoji,
-                url: place.place_url,
-              });
-            }
-          });
-        }
-        if (done === keywords.length) {
-          // 중복 제거 + 거리순 정렬
-          const unique = [...new Map(allResults.map(r => [r.name, r])).values()]
-            .sort((a, b) => a.distanceM - b.distanceM)
-            .slice(0, 12);
-          RESTAURANTS.length = 0;
-          unique.forEach(r => RESTAURANTS.push(r));
-          renderRestaurantList();
-          go('restaurantList');
-        }
-      }, {
-        location: new kakao.maps.LatLng(lat, lng),
-        radius: 800,
-        sort: kakao.maps.services.SortBy.DISTANCE,
-      });
+    // 카카오맵 Places는 지도 객체 없이도 되지만
+    // 카테고리 검색(FD6)이 더 안정적
+    const mapContainer = document.getElementById('kakaoMapHidden');
+    const mapOption = { center: new kakao.maps.LatLng(lat, lng), level: 3 };
+    const map = new kakao.maps.Map(mapContainer, mapOption);
+    const ps = new kakao.maps.services.Places(map);
+
+    // FD6 = 음식점 카테고리 코드
+    ps.categorySearch('FD6', (data, status, pagination) => {
+      if (status === kakao.maps.services.Status.OK) {
+        const results = data.map(place => {
+          const dist = parseInt(place.distance) || 0;
+          const minutes = Math.max(1, Math.round(dist / 80));
+          const category = place.category_name.split('>').pop().trim();
+          const emoji = getCategoryEmoji(category);
+          return {
+            name: place.place_name,
+            category: category,
+            distance: `${minutes}분`,
+            distanceM: dist,
+            rating: (3.5 + Math.random() * 1.5).toFixed(1),
+            emoji: emoji,
+            url: place.place_url,
+          };
+        });
+
+        // 기분 필터 적용
+        const allowedCategories = MOOD_FILTER[currentMood];
+        const filtered = allowedCategories
+          ? results.filter(r => allowedCategories.some(c => r.category.includes(c) || r.name.includes(c)))
+          : results;
+
+        const final = (filtered.length > 0 ? filtered : results).slice(0, 12);
+        RESTAURANTS.length = 0;
+        final.forEach(r => RESTAURANTS.push(r));
+        renderRestaurantList();
+        go('restaurantList');
+      } else {
+        // API 실패시 더미 데이터로 폴백
+        renderRestaurantList();
+        go('restaurantList');
+      }
+    }, {
+      location: new kakao.maps.LatLng(lat, lng),
+      radius: 800,
+      sort: kakao.maps.services.SortBy.DISTANCE,
     });
+  }
+
+  function getCategoryEmoji(category) {
+    if (category.includes('치킨')) return '🍗';
+    if (category.includes('고기') || category.includes('삼겹')) return '🥩';
+    if (category.includes('일식') || category.includes('초밥') || category.includes('스시')) return '🍣';
+    if (category.includes('중식')) return '🥡';
+    if (category.includes('양식') || category.includes('이탈리안') || category.includes('피자')) return '🍝';
+    if (category.includes('면') || category.includes('라멘') || category.includes('우동')) return '🍜';
+    if (category.includes('국') || category.includes('찌개') || category.includes('탕')) return '🍲';
+    if (category.includes('분식') || category.includes('떡볶이')) return '🌶️';
+    if (category.includes('샐러드') || category.includes('채식')) return '🥗';
+    if (category.includes('버거') || category.includes('햄버거')) return '🍔';
+    if (category.includes('카페') || category.includes('디저트')) return '☕';
+    if (category.includes('죽')) return '🥣';
+    return '🍽️';
   }
 
   // 두 좌표 사이 거리 계산 (미터)
@@ -791,6 +891,7 @@
     rebelUsed = true;
     document.getElementById('rebelBtn').disabled = true;
     document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
+    playSpinSound();
     spinWheel(currentResult ? currentResult.originalIndex : -1);
   }
 
@@ -802,6 +903,17 @@
     const respinBtn = document.getElementById('respinBtn');
     respinBtn.disabled = rebelUsed;
     respinBtn.style.opacity = rebelUsed ? '0.2' : '1';
+
+    // 카카오맵 링크 버튼
+    const mapBtn = document.getElementById('kakaoMapBtn');
+    if (restaurant.url) {
+      mapBtn.style.display = 'block';
+      mapBtn.onclick = () => window.open(restaurant.url, '_blank');
+    } else {
+      mapBtn.style.display = 'none';
+    }
+
+    playFanfareSound();
     go('resultScreen');
   }
 
@@ -813,6 +925,7 @@
     document.getElementById('rebelBtn').disabled = true;
     document.getElementById('rebelBtn').textContent = '반란 1회 사용됨';
     document.getElementById('spinActionBtn').disabled = false;
+    playSpinSound();
     setTimeout(() => spinWheel(currentResult ? currentResult.originalIndex : -1), 300);
   }
 
