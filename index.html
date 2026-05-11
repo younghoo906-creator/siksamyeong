@@ -531,8 +531,37 @@
     stopOsc.stop(startTime + duration + 0.3);
   }
 
-  // 버튼 클릭 뽁뽁 효과음
-  function playClickSound() {
+  // 식당 선택 효과음 (통통 높은 소리)
+  function playSelectSound() {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.06);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  }
+
+  // 식당 해제 효과음 (낮아지는 소리)
+  function playDeselectSound() {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(350, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  }
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -822,9 +851,11 @@
     if (idx === -1) {
       selectedRestaurants.push({ ...RESTAURANTS[index], originalIndex: index });
       el.classList.add('selected');
+      playSelectSound();
     } else {
       selectedRestaurants.splice(idx, 1);
       el.classList.remove('selected');
+      playDeselectSound();
     }
     updateSpinBtn();
   }
