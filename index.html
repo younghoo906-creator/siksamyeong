@@ -952,24 +952,35 @@
     const items = selectedRestaurants;
     const slice = (2 * Math.PI) / items.length;
 
+    // 결과 인덱스 결정
     let resultIdx;
     do { resultIdx = Math.floor(Math.random() * items.length); }
     while (excludeIndex !== -1 && resultIdx === excludeIndex && items.length > 1);
 
-    const targetAngle = -Math.PI / 2 - (resultIdx * slice + slice / 2);
-    const spins = 5 + Math.random() * 3;
-    const totalRotation = spins * 2 * Math.PI + targetAngle - (wheelRotation % (2 * Math.PI));
+    // 포인터는 위쪽(-π/2)에 고정
+    // 결과 조각의 중앙이 포인터(위쪽)에 오려면
+    // 최종 rotation = -π/2 - (resultIdx * slice + slice/2) + 2π * n
+    // 현재 rotation에서 충분히 돌아야 하므로 spins 추가
+    const spins = 6 + Math.floor(Math.random() * 4); // 6~9바퀴
+    const targetSliceCenter = resultIdx * slice + slice / 2;
+    const finalAngle = -Math.PI / 2 - targetSliceCenter;
+    // 현재 각도에서 finalAngle까지의 차이 + 추가 회전
+    const currentAngle = wheelRotation % (2 * Math.PI);
+    let delta = finalAngle - currentAngle;
+    // delta를 양수로 만들어서 항상 정방향으로 돌게
+    while (delta < 0) delta += 2 * Math.PI;
+    const totalRotation = spins * 2 * Math.PI + delta;
 
     const duration = 4000;
     const start = performance.now();
     const startRot = wheelRotation;
 
-    // 소리를 애니메이션과 동일한 duration으로 실행
     playSpinSound(duration / 1000);
 
     function animate(now) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
+      // easeOutQuart — 부드럽게 감속
       const ease = 1 - Math.pow(1 - progress, 4);
       wheelRotation = startRot + totalRotation * ease;
       drawWheel(wheelRotation);
@@ -977,13 +988,15 @@
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
+        // 정확히 최종 각도로 고정
+        wheelRotation = startRot + totalRotation;
+        drawWheel(wheelRotation);
         isSpinning = false;
         currentResult = { restaurant: items[resultIdx], originalIndex: resultIdx };
         if (!rebelUsed) {
-          const rebelBtn = document.getElementById('rebelBtn');
-          rebelBtn.style.display = 'block';
+          document.getElementById('rebelBtn').style.display = 'block';
         }
-        setTimeout(() => showResult(items[resultIdx]), 1500);
+        setTimeout(() => showResult(items[resultIdx]), 1200);
       }
     }
     requestAnimationFrame(animate);
