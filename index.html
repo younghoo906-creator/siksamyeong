@@ -422,7 +422,8 @@
 
   <!-- 4. ROULETTE -->
   <div class="screen" id="roulette" style="justify-content:center; align-items:center; gap:20px;">
-    <div class="roulette-header" style="text-align:center; padding:0;">
+    <div class="roulette-header" style="text-align:center; padding:0; position:relative; width:100%;">
+      <button onclick="playClickSound(); go('restaurantList')" style="position:absolute; left:24px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:rgba(245,240,232,0.5); font-size:14px; font-family:'Noto Sans KR',sans-serif; cursor:pointer;">← 다시 선택</button>
       <div class="roulette-label">명령 실행 중</div>
       <div class="roulette-title">독재자가 결정한다</div>
     </div>
@@ -731,45 +732,58 @@
     const ps = new kakao.maps.services.Places(map);
 
     // FD6 = 음식점 카테고리 코드
-    ps.categorySearch('FD6', (data, status, pagination) => {
-      if (status === kakao.maps.services.Status.OK) {
-        const results = data.map(place => {
-          const dist = parseInt(place.distance) || 0;
-          const minutes = Math.max(1, Math.round(dist / 80));
-          const category = place.category_name.split('>').pop().trim();
-          const emoji = getCategoryEmoji(category);
-          return {
-            name: place.place_name,
-            category: category,
-            distance: `${minutes}분`,
-            distanceM: dist,
-            rating: (3.5 + Math.random() * 1.5).toFixed(1),
-            emoji: emoji,
-            url: place.place_url,
-          };
-        });
+    let allResults = [];
 
-        // 기분 필터 적용
-        const allowedCategories = MOOD_FILTER[currentMood];
-        const filtered = allowedCategories
-          ? results.filter(r => allowedCategories.some(c => r.category.includes(c) || r.name.includes(c)))
-          : results;
+    function fetchPage(page) {
+      ps.categorySearch('FD6', (data, status, pagination) => {
+        if (status === kakao.maps.services.Status.OK) {
+          data.forEach(place => {
+            const dist = parseInt(place.distance) || 0;
+            const minutes = Math.max(1, Math.round(dist / 80));
+            const category = place.category_name.split('>').pop().trim();
+            allResults.push({
+              name: place.place_name,
+              category: category,
+              distance: `${minutes}분`,
+              distanceM: dist,
+              emoji: getCategoryEmoji(category),
+              url: place.place_url,
+            });
+          });
 
-        const final = (filtered.length > 0 ? filtered : results).slice(0, 12);
-        RESTAURANTS.length = 0;
-        final.forEach(r => RESTAURANTS.push(r));
-        renderRestaurantList();
-        go('restaurantList');
-      } else {
-        // API 실패시 더미 데이터로 폴백
-        renderRestaurantList();
-        go('restaurantList');
-      }
-    }, {
-      location: new kakao.maps.LatLng(lat, lng),
-      radius: 800,
-      sort: kakao.maps.services.SortBy.DISTANCE,
-    });
+          // 100개까지 수집
+          if (pagination.hasNextPage && allResults.length < 100) {
+            pagination.nextPage();
+          } else {
+            // 기분 필터 적용
+            const allowedCategories = MOOD_FILTER[currentMood];
+            const filtered = allowedCategories
+              ? allResults.filter(r => allowedCategories.some(c => r.category.includes(c) || r.name.includes(c)))
+              : allResults;
+
+            const pool = filtered.length > 0 ? filtered : allResults;
+
+            // 랜덤으로 섞어서 50개 뽑기
+            const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, 50);
+
+            RESTAURANTS.length = 0;
+            shuffled.forEach(r => RESTAURANTS.push(r));
+            renderRestaurantList();
+            go('restaurantList');
+          }
+        } else {
+          renderRestaurantList();
+          go('restaurantList');
+        }
+      }, {
+        location: new kakao.maps.LatLng(lat, lng),
+        radius: 800,
+        sort: kakao.maps.services.SortBy.DISTANCE,
+        page: page,
+      });
+    }
+
+    fetchPage(1);
   }
 
   function getCategoryEmoji(category) {
@@ -837,8 +851,6 @@
             <span>${r.category}</span>
             <span>·</span>
             <span>${r.distance}</span>
-            <span>·</span>
-            <span class="restaurant-rating">★ ${r.rating}</span>
           </div>
         </div>
         <div class="restaurant-check">✓</div>
@@ -1014,7 +1026,7 @@
   // ===== 결과 화면 =====
   function showResult(restaurant) {
     document.getElementById('resultName').textContent = restaurant.emoji + ' ' + restaurant.name;
-    document.getElementById('resultMeta').textContent = restaurant.category + ' · 도보 ' + restaurant.distance + ' · ★ ' + restaurant.rating;
+    document.getElementById('resultMeta').textContent = restaurant.category + ' · 도보 ' + restaurant.distance;
     document.getElementById('resultQuote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
     const respinBtn = document.getElementById('respinBtn');
     respinBtn.disabled = rebelUsed;
