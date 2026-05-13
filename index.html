@@ -415,7 +415,10 @@
     </div>
     <div id="restaurantScroll" style="flex:1; overflow-y:auto; padding:12px 24px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch;"></div>
     <div style="padding:12px 24px 32px; flex-shrink:0; background:var(--dark);">
-      <div style="text-align:center; font-size:12px; color:rgba(245,240,232,0.4); margin-bottom:10px;"><span id="selectedCountText">0</span>개 선택됨</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:12px; color:rgba(245,240,232,0.4);"><span id="selectedCountText">0</span>개 선택됨</div>
+        <button id="selectAllBtn" onclick="toggleSelectAll()" style="background:transparent; border:1px solid rgba(245,240,232,0.25); color:rgba(245,240,232,0.7); padding:6px 14px; border-radius:100px; font-size:12px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer;">전체 선택</button>
+      </div>
       <button id="spinBtn" onclick="goToRoulette()" disabled style="width:100%; background:var(--red); color:white; border:none; padding:18px; border-radius:16px; font-size:16px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:all 0.2s; opacity:0.4;">최소 2개 선택하세요</button>
     </div>
   </div>
@@ -874,6 +877,28 @@
     updateSpinBtn();
   }
 
+  function toggleSelectAll() {
+    const allItems = document.querySelectorAll('.restaurant-item');
+    const allSelected = selectedRestaurants.length === RESTAURANTS.length;
+
+    if (allSelected) {
+      // 전체 해제
+      selectedRestaurants = [];
+      allItems.forEach(el => {
+        el.classList.remove('selected');
+        playDeselectSound();
+      });
+      document.getElementById('selectAllBtn').textContent = '전체 선택';
+    } else {
+      // 전체 선택
+      selectedRestaurants = RESTAURANTS.map((r, i) => ({ ...r, originalIndex: i }));
+      allItems.forEach(el => el.classList.add('selected'));
+      playSelectSound();
+      document.getElementById('selectAllBtn').textContent = '전체 해제';
+    }
+    updateSpinBtn();
+  }
+
   function toggleRestaurant(el, index) {
     const idx = selectedRestaurants.findIndex(r => r.originalIndex === index);
     if (idx === -1) {
@@ -886,6 +911,9 @@
       playDeselectSound();
     }
     updateSpinBtn();
+    // 전체 선택 버튼 텍스트 업데이트
+    const btn = document.getElementById('selectAllBtn');
+    if (btn) btn.textContent = selectedRestaurants.length === RESTAURANTS.length ? '전체 해제' : '전체 선택';
   }
 
   function updateSpinBtn() {
