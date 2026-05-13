@@ -466,6 +466,7 @@
       <div class="done-title">오늘의 점심</div>
       <div class="done-restaurant" id="doneRestaurant"></div>
       <div class="done-desc">독재자가 결정했고<br>당신은 복종했다.<br>맛있게 먹어라 🫡</div>
+      <button id="doneMapBtn" onclick="playClickSound()" style="display:none; background:rgba(254,229,0,0.15); color:#B8A000; border:1.5px solid rgba(254,229,0,0.4); padding:16px; border-radius:16px; font-size:15px; font-weight:700; font-family:'Noto Sans KR',sans-serif; cursor:pointer; margin-bottom:12px; width:100%; transition:all 0.2s;">💬 카카오맵에서 메뉴 보기</button>
       <button class="done-btn" onclick="playClickSound(); resetAll()">다시 시작</button>
       <div style="margin-top:32px; font-size:11px; color:rgba(13,13,13,0.3); letter-spacing:1px;">made by YOUNG HOO KIM</div>
     </div>
@@ -1100,6 +1101,13 @@
   // ===== 확정 =====
   function confirmResult() {
     document.getElementById('doneRestaurant').textContent = currentResult.restaurant.emoji + ' ' + currentResult.restaurant.name;
+    const doneMapBtn = document.getElementById('doneMapBtn');
+    if (currentResult.restaurant.url) {
+      doneMapBtn.style.display = 'block';
+      doneMapBtn.onclick = () => { playClickSound(); window.open(currentResult.restaurant.url, '_blank'); };
+    } else {
+      doneMapBtn.style.display = 'none';
+    }
     go('done');
   }
 
