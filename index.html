@@ -401,7 +401,7 @@
     <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; gap:20px;">
       <div class="loading-spinner"></div>
       <div class="loading-text">주변 식당을<br>소환하는 중...</div>
-      <div class="loading-sub">도보 10분 이내</div>
+      <div class="loading-sub">📍 현재 위치 확인 중...</div>
     </div>
   </div>
 
@@ -705,12 +705,25 @@
     go('loading');
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        pos => searchNearbyRestaurants(pos.coords.latitude, pos.coords.longitude),
-        err => {
-          console.warn('위치 접근 실패, 기본 위치 사용');
-          searchNearbyRestaurants(37.5665, 126.9780);
+        pos => {
+          document.querySelector('.loading-sub').textContent = '도보 10분 이내 식당 검색 중...';
+          console.log('위치 획득 성공:', pos.coords.latitude, pos.coords.longitude);
+          searchNearbyRestaurants(pos.coords.latitude, pos.coords.longitude);
         },
-        { timeout: 5000 }
+        err => {
+          console.warn('위치 접근 실패:', err.message);
+          // 실패시 다시 한번 시도
+          navigator.geolocation.getCurrentPosition(
+            pos => searchNearbyRestaurants(pos.coords.latitude, pos.coords.longitude),
+            () => searchNearbyRestaurants(37.5665, 126.9780),
+            { timeout: 10000, enableHighAccuracy: false }
+          );
+        },
+        {
+          timeout: 10000,
+          enableHighAccuracy: true,  // 정확한 GPS 위치
+          maximumAge: 0              // 캐시 사용 안 함, 항상 새로 측정
+        }
       );
     } else {
       searchNearbyRestaurants(37.5665, 126.9780);
